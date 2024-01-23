@@ -8,9 +8,10 @@ interface Result<T> extends Event<T> {
   state: T;
 }
 export default function reactive<T>(data: T): Result<T> {
-  const state = <T>{};
   const handlers = <Record<keyof T, Array<Function>>>{};
-  for (const key in data) {
+  /**
+   * 方法1
+   *  for (const key in data) {
     Object.defineProperty(state, key, {
       get() {
         return data[key];
@@ -25,6 +26,22 @@ export default function reactive<T>(data: T): Result<T> {
       },
     });
   }
+   */
+  /**方法2 */
+  const state = <T>new Proxy(data as object, {
+    get(obj, prop) {
+      return obj[prop];
+    },
+    set(obj, prop, newVal) {
+      if (handlers[prop]) {
+        handlers[prop].forEach((cb) => {
+          cb(newVal, obj[prop]);
+        });
+      }
+      obj[prop] = newVal;
+      return true;
+    },
+  });
   /**
    * 收集事件更新
    * @param eventName 收集事件更新名称
